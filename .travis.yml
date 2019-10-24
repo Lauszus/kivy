@@ -138,7 +138,7 @@ script:
       if [ "${RUN}" == "docs" ]; then
         make html;
       fi;
-      if [ "${RUN}" == "wheels" ] && [ "${TRAVIS_PULL_REQUEST}" == "false" ]  && ([ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS_TAG}" != "" ] || [[ "$TRAVIS_COMMIT_MESSAGE" =~ "[build wheel]" ]] || [[ "$TRAVIS_COMMIT_MESSAGE" =~ "[build wheel linux]" ]]); then
+      if [ "${RUN}" == "wheels" ]; then
         mkdir wheelhouse;
         wheel_date=$(python3 -c "from datetime import datetime; print(datetime.utcnow().strftime('%Y%m%d'))");
         git_tag=$(git rev-parse --short HEAD);
@@ -154,12 +154,24 @@ script:
             cp -n $name $new_name;
           fi;
         done;
-        ls wheelhouse/;
 
+        # Cross compile the wheel for armv7l (Raspberry Pi 4)
+        docker build -f .ci/Dockerfile.armv7l -t kivy/kivy-armv7l --build-arg APP_IMAGE="balenalib/armv7hf-debian:buster" --build-arg CYTHON_INSTALL="$CYTHON_INSTALL" .;
+        CONTAINER_ID=$(docker create kivy/kivy-armv7l);
+        docker cp "${CONTAINER_ID}":/kivy-wheel .;
+        cp kivy-wheel/Kivy-* wheelhouse/
+        for name in wheelhouse/*armv7l*.whl; do
+          new_name="${name/$tag_name-/$wheel_name}";
+          if [ ! -f "$new_name" ]; then
+            cp -n $name $new_name;
+          fi;
+        done;
+
+        ls wheelhouse/;
         openssl aes-256-cbc -K $encrypted_675f1a0c317c_key -iv $encrypted_675f1a0c317c_iv -in ./kivy/tools/travis/id_rsa.enc -out ~/.ssh/id_rsa -d;
         chmod 600 ~/.ssh/id_rsa;
         echo -e "Host $SERVER_IP\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config;
-        rsync -avh -e "ssh -p 2458" --include="*/" --include="*manylinux*.whl" --exclude="*" "wheelhouse/" "root@$SERVER_IP:/web/downloads/ci/linux/kivy/";
+        rsync -avh -e "ssh -p 2458" --include="*/" --include="*manylinux*.whl" --include="*armv7l*.whl" --exclude="*" "wheelhouse/" "root@$SERVER_IP:/web/downloads/ci/linux/kivy/";
       fi;
     fi;
   - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
