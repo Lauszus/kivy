@@ -82,7 +82,7 @@ jobs:
         source .ci/ubuntu_ci.sh
         rename_wheels
     - name: Upload wheels to server
-      if: github.event_name != 'pull_request'
+      if: github.event_name != 'pull_request' && github.repository == 'kivy/kivy'
       env:
         UBUNTU_UPLOAD_KEY: ${{ secrets.UBUNTU_UPLOAD_KEY }}
       run: |
@@ -156,6 +156,7 @@ jobs:
           source .ci/osx_ci.sh
           generate_osx_app "$py_version" "$branch_name"
       - name: Upload app to server
+        if: github.event_name != 'pull_request' && github.repository == 'kivy/kivy'
         env:
           UBUNTU_UPLOAD_KEY: ${{ secrets.UBUNTU_UPLOAD_KEY }}
         run: |

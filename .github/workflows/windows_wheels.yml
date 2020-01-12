@@ -74,7 +74,7 @@ jobs:
       - name: Install MSYS2
         run: choco install msys2
       - name: Upload wheels to server
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && github.repository == 'kivy/kivy'
         env:
           UBUNTU_UPLOAD_KEY: ${{ secrets.UBUNTU_UPLOAD_KEY }}
           MSYSTEM: MINGW64
